@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>تسجيل الدخول</title>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial; max-width: 400px; margin: 50px auto; }
+    input, button { display: block; width: 100%; padding: 10px; margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <h1>تسجيل الدخول</h1>
+  <input id="email" placeholder="البريد الإلكتروني" />
+  <input id="password" type="password" placeholder="كلمة المرور" />
+  <button onclick="login()">دخول</button>
+  <button onclick="register()">تسجيل جديد</button>
+  <div id="msg"></div>
+
+  <script>
+    async function callApi(url, data) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      return await res.json();
+    }
+
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const data = await callApi('/api/auth/login', { email, password });
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        if (email === 'admin@example.com') location.href = '/admin.html';
+        else location.href = '/dashboard.html';
+      } else {
+        document.getElementById('msg').innerText = data.error || 'فشل الدخول';
+      }
+    }
+
+    async function register() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const data = await callApi('/api/auth/register', { email, password });
+      document.getElementById('msg').innerText = data.message || data.error || 'تم';
+    }
+  </script>
+</body>
+</html>
