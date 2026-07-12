@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>لوحة التحكم</title>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial; max-width: 800px; margin: 20px auto; }
+    textarea { width: 100%; height: 100px; }
+    button { padding: 10px; margin: 5px; }
+  </style>
+</head>
+<body>
+  <h1>لوحة المستخدم</h1>
+  <div id="info"></div>
+  <h2>الأرقام (JSON)</h2>
+  <textarea id="accounts"></textarea>
+  <h2>الرسائل (JSON)</h2>
+  <textarea id="messages"></textarea>
+  <h2>الجدولة (hh:mm)</h2>
+  <input id="schedule" placeholder="مثال: 10:30" />
+  <button onclick="saveData()">حفظ</button>
+  <button onclick="runNow()">تشغيل الآن</button>
+  <button onclick="logout()">تسجيل خروج</button>
+  <div id="msg"></div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) location.href = '/';
+
+    async function apiGet(url) {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      return await res.json();
+    }
+    async function apiPost(url, data) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(data)
+      });
+      return await res.json();
+    }
+    async function apiPut(url, data) {
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(data)
+      });
+      return await res.json();
+    }
+
+    async function loadData() {
+      const data = await apiGet('/api/user/data');
+      document.getElementById('accounts').value = JSON.stringify(data.accounts || [], null, 2);
+      document.getElementById('messages').value = JSON.stringify(data.messages || [], null, 2);
+      document.getElementById('schedule').value = data.schedule || '';
+      document.getElementById('info').innerHTML = `البوت المحجوز: <b>${data.reserved_bot || 'لا يوجد'}</b>`;
+    }
+
+    async function saveData() {
+      let accounts, messages;
+      try {
+        accounts = JSON.parse(document.getElementById('accounts').value);
+        messages = JSON.parse(document.getElementById('messages').value);
+      } catch {
+        document.getElementById('msg').innerText = 'خطأ في JSON';
+        return;
+      }
+      const schedule = document.getElementById('schedule').value;
+      const res = await apiPut('/api/user/data', { accounts, messages, schedule });
+      document.getElementById('msg').innerText = res.message || res.error || 'تم الحفظ';
+    }
+
+    async function runNow() {
+      const res = await apiPost('/api/user/run', {});
+      document.getElementById('msg').innerText = res.message || res.error || 'تم التشغيل';
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      location.href = '/';
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
